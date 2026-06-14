@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 工作总结生成器 | jotarou.com</title>
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --bg-card: #faf7f2;
+    --brown: #2c1f0e;
+    --brown-mid: #5a3e28;
+    --brown-light: #8a6a4a;
+    --accent: #d4622a;
+    --accent-light: #f0e6de;
+    --accent-hover: #b8521f;
+    --border: #e0d5c5;
+    --text: #2c1f0e;
+    --text-muted: #7a6a55;
+    --highlight: #ff9500;
+    --highlight-bg: #fff3e0;
+    --success: #4a7c59;
+    --shadow: 0 2px 12px rgba(44,31,14,0.08);
+    --shadow-lg: 0 8px 32px rgba(44,31,14,0.12);
+  }
+
+  [data-theme="dark"] {
+    --bg: #1a1208;
+    --bg-card: #221a0e;
+    --brown: #f0e8d8;
+    --brown-mid: #c8b89a;
+    --brown-light: #9a8a72;
+    --accent: #e07040;
+    --accent-light: #2a1a0e;
+    --accent-hover: #f08050;
+    --border: #3a2a18;
+    --text: #f0e8d8;
+    --text-muted: #9a8a72;
+    --highlight-bg: #2a1a00;
+    --shadow: 0 2px 12px rgba(0,0,0,0.3);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ── Top Bar ── */
+  .top-bar {
+    background: var(--brown);
+    color: var(--bg);
+    padding: 0 24px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  [data-theme="dark"] .top-bar { background: #0e0a04; }
+  .top-bar-left { font-size: 13px; opacity: 0.7; }
+  .top-bar-left a { color: var(--bg); text-decoration: none; opacity: 0.7; }
+  .top-bar-left a:hover { opacity: 1; }
+  .top-bar-right { display: flex; align-items: center; gap: 12px; }
+  .theme-btn {
+    background: none; border: 1px solid rgba(255,255,255,0.3);
+    color: var(--bg); border-radius: 6px; padding: 4px 10px;
+    font-size: 12px; cursor: pointer; transition: all 0.2s;
+  }
+  .theme-btn:hover { background: rgba(255,255,255,0.1); }
+
+  /* ── Header ── */
+  .header {
+    padding: 48px 24px 36px;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  .header-eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .header h1 {
+    font-size: clamp(26px, 4vw, 38px);
+    font-weight: 800;
+    color: var(--brown);
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+  .header-accent-line {
+    width: 48px; height: 3px;
+    background: var(--accent);
+    margin-bottom: 16px;
+    border-radius: 2px;
+  }
+  .header p {
+    font-size: 15px;
+    color: var(--text-muted);
+    max-width: 560px;
+  }
+
+  /* ── Section Wrapper ── */
+  .container { max-width: 860px; margin: 0 auto; padding: 0 24px 80px; }
+
+  /* ── Section Title ── */
+  .section-label {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; margin-bottom: 16px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── Free Zone ── */
+  .free-zone {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow);
+  }
+  .free-zone-title {
+    font-size: 16px; font-weight: 700; color: var(--brown);
+    margin-bottom: 6px; display: flex; align-items: center; gap-8px;
+  }
+  .free-badge {
+    display: inline-block; background: var(--success);
+    color: #fff; font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px; margin-left: 8px;
+    letter-spacing: 0.05em;
+  }
+  .free-zone-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+
+  /* Scene tabs */
+  .scene-tabs {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;
+  }
+  .scene-tab {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--bg); color: var(--brown-mid);
+    font-size: 13px; cursor: pointer;
+    transition: all 0.2s; font-weight: 500;
+  }
+  .scene-tab:hover { border-color: var(--accent); color: var(--accent); }
+  .scene-tab.active {
+    background: var(--accent); color: #fff;
+    border-color: var(--accent);
+  }
+
+  /* Template display */
+  .template-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    font-size: 13px;
+    display: none;
+  }
+  .template-box.show { display: block; }
+  .template-box h4 {
+    font-size: 14px; font-weight: 700; color: var(--brown);
+    margin-bottom: 12px;
+  }
+  .template-section {
+    margin-bottom: 14px;
+    padding-left: 12px;
+    border-left: 2px solid var(--accent-light);
+  }
+  .template-section strong {
+    display: block; font-size: 12px; color: var(--accent);
+    font-weight: 700; margin-bottom: 4px; text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .template-section p { color: var(--text-muted); font-size: 13px; }
+
+  /* Verb library */
+  .verb-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .verb-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .verb-card-title { font-size: 11px; color: var(--accent); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .verb-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+  .verb-tag {
+    background: var(--accent-light); color: var(--accent);
+    font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: 500;
+  }
+
+  /* ── AI Zone ── */
+  .ai-zone {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow);
+  }
+  .ai-zone-title {
+    font-size: 16px; font-weight: 700; color: var(--brown);
+    margin-bottom: 4px;
+  }
+  .ai-zone-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+
+  /* Quick input */
+  .quick-input-wrap {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+  .quick-input-label {
+    font-size: 12px; font-weight: 700; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .quick-input-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+  .quick-textarea {
+    width: 100%; min-height: 80px; resize: vertical;
+    background: transparent; border: none; outline: none;
+    font-size: 14px; color: var(--text); font-family: inherit;
+    line-height: 1.6;
+  }
+  .quick-parse-btn {
+    margin-top: 10px;
+    padding: 8px 18px;
+    background: var(--brown);
+    color: var(--bg); border: none; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+  }
+  [data-theme="dark"] .quick-parse-btn { background: var(--accent); }
+  .quick-parse-btn:hover { background: var(--accent); }
+  .or-divider {
+    text-align: center; font-size: 12px; color: var(--text-muted);
+    margin: 16px 0; position: relative;
+  }
+  .or-divider::before, .or-divider::after {
+    content: ''; position: absolute; top: 50%;
+    width: 42%; height: 1px; background: var(--border);
+  }
+  .or-divider::before { left: 0; }
+  .or-divider::after { right: 0; }
+
+  /* Form fields */
+  .form-row { margin-bottom: 18px; }
+  .form-label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; color: var(--brown);
+    margin-bottom: 7px;
+  }
+  .required-dot { color: var(--accent); font-size: 16px; line-height: 1; }
+  .form-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  select, input[type="text"], textarea.form-textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 13px;
+    font-size: 14px;
+    color: var(--text);
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+  }
+  select:focus, input[type="text"]:focus, textarea.form-textarea:focus {
+    border-color: var(--accent);
+  }
+  textarea.form-textarea { resize: vertical; min-height: 80px; }
+
+  /* Work items */
+  .work-items { display: flex; flex-direction: column; gap: 10px; }
+  .work-item {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    position: relative;
+  }
+  .work-item-row { display: flex; gap: 10px; }
+  .work-item-row input { flex: 1; }
+  .work-item textarea {
+    width: 100%; margin-top: 8px; resize: vertical; min-height: 52px;
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px;
+    font-size: 13px; color: var(--text); font-family: inherit;
+    outline: none;
+  }
+  .work-item textarea:focus { border-color: var(--accent); }
+  .work-item-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+  .remove-item-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 16px; line-height: 1;
+    padding: 2px 6px; border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .remove-item-btn:hover { color: var(--accent); background: var(--accent-light); }
+  .add-item-btn {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1.5px dashed var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 13px; cursor: pointer;
+    transition: all 0.2s; font-family: inherit;
+    width: 100%; margin-top: 4px;
+  }
+  .add-item-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Pill options */
+  .pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    padding: 7px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    font-size: 13px; cursor: pointer;
+    color: var(--brown-mid); background: var(--bg);
+    transition: all 0.2s; font-weight: 500;
+    user-select: none;
+  }
+  .pill:hover { border-color: var(--accent); color: var(--accent); }
+  .pill.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* Optional fields */
+  .optional-fields { display: none; }
+  .optional-fields.show { display: block; }
+  .optional-toggle {
+    font-size: 12px; color: var(--accent); cursor: pointer;
+    margin-bottom: 16px; display: inline-flex; align-items: center; gap: 4px;
+    background: none; border: none; font-family: inherit; padding: 0;
+  }
+  .optional-toggle:hover { text-decoration: underline; }
+
+  /* Generate button */
+  .generate-btn {
+    width: 100%; padding: 15px;
+    background: var(--accent);
+    color: #fff; border: none;
+    border-radius: 12px; font-size: 16px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+    margin-top: 8px; font-family: inherit;
+  }
+  .generate-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(212,98,42,0.3); }
+  .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* ── Output Zone ── */
+  .output-zone { display: none; }
+  .output-zone.show { display: block; }
+  .output-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: var(--shadow);
+  }
+  .output-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
+  }
+  .output-title { font-size: 15px; font-weight: 700; color: var(--brown); }
+  .output-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .action-btn {
+    padding: 7px 14px; border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--bg); color: var(--brown-mid);
+    font-size: 13px; cursor: pointer;
+    transition: all 0.2s; font-family: inherit; font-weight: 500;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .action-btn.primary:hover { background: var(--accent-hover); }
+
+  /* Result text */
+  .result-text {
+    font-size: 15px; line-height: 1.9;
+    color: var(--text); white-space: pre-wrap;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    min-height: 200px;
+  }
+
+  /* Highlight placeholder */
+  .placeholder-tag {
+    background: var(--highlight-bg);
+    color: var(--highlight);
+    border: 1.5px solid var(--highlight);
+    border-radius: 5px;
+    padding: 1px 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: inline;
+  }
+  .placeholder-tag:hover { background: var(--highlight); color: #fff; }
+
+  /* Inline edit popup */
+  .placeholder-popup {
+    position: fixed; z-index: 1000;
+    background: var(--bg-card);
+    border: 1.5px solid var(--accent);
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: var(--shadow-lg);
+    display: none; min-width: 200px;
+  }
+  .placeholder-popup.show { display: block; }
+  .placeholder-popup input {
+    width: 100%; padding: 7px 10px;
+    border: 1.5px solid var(--border); border-radius: 6px;
+    font-size: 14px; background: var(--bg); color: var(--text);
+    font-family: inherit; outline: none;
+  }
+  .placeholder-popup input:focus { border-color: var(--accent); }
+  .placeholder-popup-hint { font-size: 11px; color: var(--text-muted); margin-bottom: 7px; }
+  .placeholder-popup-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .ph-confirm-btn {
+    flex: 1; padding: 6px; background: var(--accent); color: #fff;
+    border: none; border-radius: 6px; font-size: 12px; cursor: pointer;
+    font-weight: 600; font-family: inherit;
+  }
+  .ph-cancel-btn {
+    padding: 6px 10px; background: transparent;
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 12px; cursor: pointer; color: var(--text-muted); font-family: inherit;
+  }
+
+  /* Adjust length */
+  .adjust-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+  /* ── History ── */
+  .history-zone {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: var(--shadow);
+  }
+  .history-list { display: flex; flex-direction: column; gap: 10px; }
+  .history-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex; align-items: flex-start;
+    justify-content: space-between; gap: 12px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .history-item:hover { border-color: var(--accent); }
+  .history-item-info { flex: 1; min-width: 0; }
+  .history-item-type {
+    font-size: 11px; color: var(--accent); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px;
+  }
+  .history-item-preview {
+    font-size: 13px; color: var(--text-muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .history-item-time { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+  .history-del-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 14px; padding: 2px 6px;
+    border-radius: 4px; transition: all 0.2s;
+  }
+  .history-del-btn:hover { color: var(--accent); background: var(--accent-light); }
+  .history-empty { font-size: 13px; color: var(--text-muted); text-align: center; padding: 20px 0; }
+
+  /* Loading */
+  .loading-wrap { text-align: center; padding: 40px 0; }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: var(--text-muted); }
+
+  /* Footer */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 24px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.8;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  .footer a { color: var(--accent); text-decoration: none; }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex; gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+  .stat-item {
+    flex: 1; padding: 14px 16px; text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-num { font-size: 22px; font-weight: 800; color: var(--accent); line-height: 1; margin-bottom: 3px; }
+  .stat-label { font-size: 11px; color: var(--text-muted); }
+
+  /* Copy toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--brown); color: var(--bg);
+    padding: 10px 20px; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 999;
+  }
+  [data-theme="dark"] .toast { background: var(--accent); }
+  .toast.show { opacity: 1; }
+
+  /* responsive */
+  @media (max-width: 600px) {
+    .stats-bar { flex-direction: column; }
+    .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
+    .stat-item:last-child { border-bottom: none; }
+    .verb-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Select arrow */
+  .select-wrap { position: relative; }
+  .select-wrap::after {
+    content: '▾'; position: absolute; right: 13px; top: 50%;
+    transform: translateY(-50%); pointer-events: none;
+    color: var(--text-muted); font-size: 12px;
+  }
+  .select-wrap select { padding-right: 30px; cursor: pointer; }
+
+  /* Two col */
+  .form-row-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+  @media (max-width: 520px) { .form-row-2col { grid-template-columns: 1fr; } }
+  
+  /* 移动端弹窗优化 (Bottom Sheet) */
+  @media (max-width: 600px) {
+    .placeholder-popup {
+      top: auto !important; bottom: 0 !important; left: 0 !important;
+      width: 100%; border-radius: 20px 20px 0 0; padding: 24px 20px 32px;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+      border: none; border-top: 1.5px solid var(--accent);
+    }
+  }
+
+  /* 自由编辑模式 */
+  .result-text.editing {
+    padding: 0; border: none; background: transparent;
+  }
+  .result-textarea {
+    width: 100%; min-height: 200px; padding: 20px;
+    background: var(--bg); border: 1.5px dashed var(--accent);
+    border-radius: 10px; font-size: 15px; line-height: 1.9;
+    color: var(--text); font-family: inherit; resize: vertical;
+    outline: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="top-bar-left">
+    <a href="https://jotarou.com">jotarou.com</a>
+    <span> · AI 效率工具</span>
+  </div>
+  <div class="top-bar-right">
+    <button class="theme-btn" onclick="toggleTheme()">🌙 深色</button>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-eyebrow">AI 效率工具 · 第 8 个</div>
+  <h1>AI 工作总结 / 年终汇报生成器</h1>
+  <div class="header-accent-line"></div>
+  <p>填空代替空白，拒绝流水账。把你的碎片素材，变成一份有说服力的总结。</p>
+</div>
+
+<div class="container">
+
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-num">8</div>
+      <div class="stat-label">适用场景</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="statGen">0</div>
+      <div class="stat-label">已生成次数</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">100%</div>
+      <div class="stat-label">数据真实保证</div>
+    </div>
+  </div>
+
+  <div class="section-label">免费参考区</div>
+
+  <div class="free-zone">
+    <div class="free-zone-title">
+      场景骨架速查 <span class="free-badge">FREE</span>
+    </div>
+    <div class="free-zone-desc">选择你要写的场景，直接看结构框架和每块该写什么。</div>
+    <div class="scene-tabs" id="sceneTabs"></div>
+    <div id="templateBox" class="template-box"></div>
+  </div>
+
+  <div class="free-zone">
+    <div class="free-zone-title">量化表达工具箱 <span class="free-badge">FREE</span></div>
+    <div class="free-zone-desc">把"完成了XX"变成有说服力的成果陈述，三步走。</div>
+    <div class="verb-grid">
+      <div class="verb-card">
+        <div class="verb-card-title">🎯 强动词库</div>
+        <div class="verb-tags">
+          <span class="verb-tag">主导</span><span class="verb-tag">推动</span>
+          <span class="verb-tag">搭建</span><span class="verb-tag">优化</span>
+          <span class="verb-tag">牵头</span><span class="verb-tag">沉淀</span>
+          <span class="verb-tag">赋能</span><span class="verb-tag">落地</span>
+          <span class="verb-tag">攻克</span><span class="verb-tag">统筹</span>
+        </div>
+      </div>
+      <div class="verb-card">
+        <div class="verb-card-title">📊 量化维度</div>
+        <div class="verb-tags">
+          <span class="verb-tag">效率↑</span><span class="verb-tag">耗时↓</span>
+          <span class="verb-tag">规模↑</span><span class="verb-tag">错误率↓</span>
+          <span class="verb-tag">成本↓</span><span class="verb-tag">满意度↑</span>
+          <span class="verb-tag">覆盖率↑</span>
+        </div>
+      </div>
+      <div class="verb-card">
+        <div class="verb-card-title">✍️ STAR 四步</div>
+        <div class="verb-tags">
+          <span class="verb-tag">背景</span><span class="verb-tag">任务</span>
+          <span class="verb-tag">行动</span><span class="verb-tag">结果</span>
+        </div>
+      </div>
+      <div class="verb-card">
+        <div class="verb-card-title">🚫 别这样写</div>
+        <div class="verb-tags">
+          <span class="verb-tag" style="background:var(--accent-light);color:#999;text-decoration:line-through">积极配合</span>
+          <span class="verb-tag" style="background:var(--accent-light);color:#999;text-decoration:line-through">认真完成</span>
+          <span class="verb-tag" style="background:var(--accent-light);color:#999;text-decoration:line-through">努力学习</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">AI 生成区</div>
+
+  <div class="ai-zone">
+    <div class="ai-zone-title">✦ 智能生成</div>
+    <div class="ai-zone-desc">填写越具体，生成越精准。没有数据？AI 会留下占位符，你来填真实数字。</div>
+
+    <div class="quick-input-wrap">
+      <div class="quick-input-label">⚡ 碎碎念速记</div>
+      <div class="quick-input-hint">直接把这周干了什么随手写下来，AI 帮你整理归类到下方表单。</div>
+      <textarea class="quick-textarea" id="quickInput" placeholder="例：这周把登录模块搞完了，用了新缓存方案，速度快了很多。然后开了3个需求对齐会。还帮小李review了代码……"></textarea>
+      <button class="quick-parse-btn" onclick="parseQuickInput()">✦ 帮我整理 → 填入表单</button>
+    </div>
+
+    <div class="or-divider">或者直接填写下方表单</div>
+
+    <div class="form-row-2col">
+      <div class="form-row" style="margin-bottom:0">
+        <div class="form-label"><span class="required-dot">·</span> 总结类型</div>
+        <div class="select-wrap">
+          <select id="summaryType" onchange="onTypeChange()">
+            <option value="">请选择...</option>
+            <option value="weekly">周报</option>
+            <option value="monthly">月报</option>
+            <option value="quarterly">季报</option>
+            <option value="annual">年终总结</option>
+            <option value="probation">转正总结</option>
+            <option value="promotion">述职报告（晋升）</option>
+            <option value="project">项目复盘</option>
+            <option value="handover">离职交接说明</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <div class="form-label"><span class="required-dot">·</span> 给谁看</div>
+        <div class="select-wrap">
+          <select id="audience">
+            <option value="">请选择...</option>
+            <option value="leader">直属领导</option>
+            <option value="cross">跨部门汇报</option>
+            <option value="self">自我存档</option>
+            <option value="promotion">晋升评委</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-label"><span class="required-dot">·</span> 岗位 / 角色</div>
+      <input type="text" id="role" placeholder="如：前端工程师、产品经理、运营专员">
+    </div>
+
+    <div class="form-row">
+      <div class="form-label"><span class="required-dot">·</span> 核心工作项</div>
+      <div class="work-items" id="workItems">
+        <div class="work-item" data-index="0">
+          <button class="remove-item-btn" onclick="removeWorkItem(this)">×</button>
+          <input type="text" placeholder="工作内容：如「重构用户登录模块」">
+          <textarea placeholder="结果 / 数据（有则填，没有可留空，AI 会打占位符）&#10;如：接口响应时间从 800ms 降至 200ms，错误率下降 60%"></textarea>
+          <div class="work-item-hint">💡 有具体数据最好，没有也没关系，别瞎编</div>
+        </div>
+      </div>
+      <button class="add-item-btn" onclick="addWorkItem()">＋ 添加工作项</button>
+    </div>
+
+    <div class="form-row">
+      <div class="form-label"><span class="required-dot">·</span> 输出风格</div>
+      <div class="pill-group" id="styleGroup">
+        <span class="pill" data-val="practical" onclick="selectPill(this, 'styleGroup')">朴实务实</span>
+        <span class="pill" data-val="data" onclick="selectPill(this, 'styleGroup')">数据导向</span>
+        <span class="pill" data-val="highlight" onclick="selectPill(this, 'styleGroup')">突出亮点</span>
+        <span class="pill" data-val="formal" onclick="selectPill(this, 'styleGroup')">体制内正式</span>
+      </div>
+    </div>
+
+    <button class="optional-toggle" onclick="toggleOptional()">
+      <span id="optToggleIcon">▶</span> 选填项（亮点成果、问题与解决、下阶段规划）
+    </button>
+
+    <div class="optional-fields" id="optionalFields">
+      <div class="form-row">
+        <div class="form-label">亮点成果</div>
+        <textarea class="form-textarea" id="highlights" placeholder="本阶段最值得单独说的成果，如获奖、超额完成指标、解决重大 Bug..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-label">问题与解决</div>
+        <textarea class="form-textarea" id="problems" placeholder="遇到什么难题，如何解决的。体现解决问题能力。"></textarea>
+      </div>
+      <div class="form-row" id="weaknessRow">
+        <div class="form-label">不足与改进</div>
+        <textarea class="form-textarea" id="weakness" placeholder="务虚但领导爱看，适当写 1-2 点"></textarea>
+      </div>
+      <div class="form-row" id="planRow">
+        <div class="form-label">下阶段规划</div>
+        <textarea class="form-textarea" id="plan" placeholder="下周 / 下月 / 明年 打算做什么"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-label">时间范围（选填）</div>
+        <input type="text" id="timeRange" placeholder="如：2026年Q2、2025年全年、本周（6/9-6/13）">
+      </div>
+    </div>
+
+    <button class="generate-btn" id="generateBtn" onclick="generate()">✦ 生成工作总结</button>
+  </div>
+
+  <div class="output-zone" id="outputZone">
+    <div class="section-label">生成结果</div>
+    <div class="output-card">
+      <div class="output-header">
+        <div class="output-title" id="outputTitle">工作总结</div>
+        <div class="output-actions">
+          <button class="action-btn" onclick="adjustLength('shorter')">更精简</button>
+          <button class="action-btn" onclick="adjustLength('longer')">更详细</button>
+          <button class="action-btn" id="editToggleBtn" onclick="toggleEditMode()">✏️ 自由编辑</button>
+          <button class="action-btn primary" onclick="copyResult()">复制全文</button>
+        </div>
+      </div>
+      <div class="result-text" id="resultText"></div>
+      <div class="adjust-row">
+        <button class="action-btn" onclick="regenWithStyle('practical')">换风格：务实</button>
+        <button class="action-btn" onclick="regenWithStyle('highlight')">换风格：突出亮点</button>
+        <button class="action-btn" onclick="regenWithStyle('formal')">换风格：体制内</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:32px">历史记录</div>
+  <div class="history-zone">
+    <div class="history-list" id="historyList">
+      <div class="history-empty">暂无历史记录</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>🔒 隐私说明：您的工作内容经端对端加密后，通过 jotarou.com 单次 API 转发至 AI 模型，系统不留存、不用于训练数据。</p>
+  <p style="margin-top:6px">Made by <a href="https://jotarou.com">jotarou.com</a> · <a href="https://jotarou.com/tools/">更多 AI 工具</a></p>
+</div>
+
+<div class="placeholder-popup" id="phPopup">
+  <div class="placeholder-popup-hint" id="phHint">请填入真实数据：</div>
+  <input type="text" id="phInput" placeholder="填入真实数字或描述">
+  <div class="placeholder-popup-actions">
+    <button class="ph-confirm-btn" onclick="confirmPlaceholder()">确认替换</button>
+    <button class="ph-cancel-btn" onclick="closePhPopup()">取消</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Data ──
+const SCENES = {
+  weekly:    { label: '周报', sections: [
+    { t: '本周工作完成', p: '列出 3-5 项已完成工作，每项一行，用动词开头（推进/完成/优化）' },
+    { t: '关键进展与成果', p: '有数据的成果单独拎出，哪怕只有一条' },
+    { t: '问题与风险', p: '遇到的阻塞项、依赖项，一句话说清楚' },
+    { t: '下周计划', p: '3-5 条，对应本周未完成或新启动的任务' },
+  ]},
+  monthly:   { label: '月报', sections: [
+    { t: '本月工作总览', p: '2-3 句话概括这个月干了什么方向的事' },
+    { t: '重点工作详述', p: '逐项展开 3-5 件大事，背景→行动→结果' },
+    { t: '数据与成果', p: '尽量量化，没有数据就写定性描述' },
+    { t: '问题与应对', p: '遇到什么困难，怎么解决或绕过的' },
+    { t: '下月计划', p: '3-5 条，有时间节点更好' },
+  ]},
+  quarterly: { label: '季报', sections: [
+    { t: 'Q× 总结（执行层）', p: '这个季度整体完成率如何，主线任务状态' },
+    { t: '核心成果', p: '3 件最有价值的事，每件用 STAR 结构写' },
+    { t: '目标完成度回顾', p: '季初目标 vs 实际完成，诚实说差距' },
+    { t: '经验沉淀', p: '做对了什么，踩了什么坑' },
+    { t: 'Q×+1 目标', p: '3-5 个具体目标，最好可量化' },
+  ]},
+  annual:    { label: '年终总结', sections: [
+    { t: '全年工作综述', p: '3-5 句话总览全年主线和整体方向感' },
+    { t: '重点项目 / 成果盘点', p: '选 3-5 个最有价值的项目，每个 STAR 结构' },
+    { t: '个人成长', p: '技能提升、承担的新责任、认知变化' },
+    { t: '不足与反思', p: '1-2 点，诚恳但不自毁形象' },
+    { t: '明年规划', p: '2-3 个方向目标 + 具体行动路径' },
+  ]},
+  probation: { label: '转正总结', sections: [
+    { t: '入职概况', p: '入职时间、岗位、主要负责内容一句话概括' },
+    { t: '试用期主要工作', p: '按时间线或项目列出，突出独立完成的部分' },
+    { t: '快速成长点', p: '入职时不会，现在会了的，越具体越好' },
+    { t: '融入情况', p: '对公司文化、团队协作的适应性，正面表达' },
+    { t: '转正后计划', p: '接下来 3-6 个月想做什么、想突破什么' },
+  ]},
+  promotion: { label: '述职报告', sections: [
+    { t: '现职岗位概述', p: '岗位名称、核心职责、在团队中的角色定位' },
+    { t: '任职期间核心贡献', p: '选 3-4 件最能体现价值的事，STAR 结构，要有数据' },
+    { t: '带领 / 影响', p: '是否带过人、推动过跨团队协作、影响过他人' },
+    { t: '个人成长曲线', p: '展示从 A 到 B 的进化，而不只是做了什么' },
+    { t: '晋升后的规划', p: '新岗位的职责理解 + 上任后 90 天打算怎么干' },
+  ]},
+  project:   { label: '项目复盘', sections: [
+    { t: '项目背景', p: '为什么做这个项目，解决什么问题' },
+    { t: '目标 vs 结果', p: '当初设定的目标，最终达成情况' },
+    { t: '做对了什么', p: '值得复用的经验、决策、工作方式' },
+    { t: '做错了什么', p: '踩的坑，如果重来会怎么改' },
+    { t: '沉淀 / 行动项', p: '这次复盘产出的具体改进措施，谁来负责落地' },
+  ]},
+  handover:  { label: '离职交接', sections: [
+    { t: '在职期间工作总览', p: '从什么时候到什么时候，负责什么' },
+    { t: '当前进行中事项', p: '逐条列出，含状态、联系人、下一步' },
+    { t: '重要资料 / 账号位置', p: '文档在哪，账号谁来接，系统权限怎么移交' },
+    { t: '注意事项 / 坑点', p: '新人需要知道的隐性知识，别让他们再踩一遍' },
+    { t: '感谢语', p: '适当写，不要太长，真诚即可' },
+  ]},
+};
+
+const SCENE_KEYS = Object.keys(SCENES);
+let history = JSON.parse(localStorage.getItem('ws_history') || '[]');
+let currentResult = '';
+let currentPlaceholderEl = null;
+let lastParams = null;
+let isEditing = false;
+
+// ── Init ──
+function init() {
+  // Theme
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  updateThemeBtn();
+
+  // Scene tabs
+  const tabs = document.getElementById('sceneTabs');
+  SCENE_KEYS.forEach(key => {
+    const btn = document.createElement('button');
+    btn.className = 'scene-tab';
+    btn.textContent = SCENES[key].label;
+    btn.onclick = () => showTemplate(key, btn);
+    tabs.appendChild(btn);
+  });
+
+  // Stats: gen count
+  const count = parseInt(localStorage.getItem('ws_gen_count') || '0');
+  document.getElementById('statGen').textContent = count;
+
+  renderHistory();
+}
+
+function showTemplate(key, btn) {
+  document.querySelectorAll('.scene-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const scene = SCENES[key];
+  const box = document.getElementById('templateBox');
+  box.innerHTML = `<h4>📋 ${scene.label}：骨架结构</h4>` +
+    scene.sections.map(s =>
+      `<div class="template-section"><strong>${s.t}</strong><p>${s.p}</p></div>`
+    ).join('');
+  box.className = 'template-box show';
+}
+
+// ── Type change ──
+function onTypeChange() {
+  const type = document.getElementById('summaryType').value;
+  const needsPlan = ['weekly','monthly','quarterly','annual','promotion'].includes(type);
+  document.getElementById('planRow').style.display = needsPlan ? 'block' : 'none';
+  
+  // 智能展开选填项
+  if (needsPlan && !optOpen) {
+    toggleOptional();
+  }
+}
+
+// ── Work items ──
+let workIndex = 1;
+function addWorkItem() {
+  const container = document.getElementById('workItems');
+  const idx = workIndex++;
+  const div = document.createElement('div');
+  div.className = 'work-item';
+  div.setAttribute('data-index', idx);
+  div.innerHTML = `
+    <button class="remove-item-btn" onclick="removeWorkItem(this)">×</button>
+    <input type="text" placeholder="工作内容：如「优化数据库查询性能」">
+    <textarea placeholder="结果 / 数据（有则填，没有可留空）&#10;如：查询耗时从 2s 降至 0.3s，支撑并发量提升 5 倍"></textarea>
+    <div class="work-item-hint">💡 有具体数据最好，没有也没关系，别瞎编</div>
+  `;
+  container.appendChild(div);
+}
+
+function removeWorkItem(btn) {
+  const items = document.querySelectorAll('.work-item');
+  if (items.length <= 1) { showToast('至少保留一条工作项'); return; }
+  btn.closest('.work-item').remove();
+}
+
+// ── Pill select ──
+function selectPill(el, groupId) {
+  document.querySelectorAll(`#${groupId} .pill`).forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── Optional toggle ──
+let optOpen = false;
+function toggleOptional() {
+  optOpen = !optOpen;
+  document.getElementById('optionalFields').className = 'optional-fields' + (optOpen ? ' show' : '');
+  document.getElementById('optToggleIcon').textContent = optOpen ? '▼' : '▶';
+}
+
+// ── Theme ──
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+  localStorage.setItem('theme', isDark ? '' : 'dark');
+  updateThemeBtn();
+}
+function updateThemeBtn() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.querySelector('.theme-btn').textContent = isDark ? '☀️ 浅色' : '🌙 深色';
+}
+
+// ── Quick parse ──
+async function parseQuickInput() {
+  const text = document.getElementById('quickInput').value.trim();
+  if (!text) { showToast('请先输入一些内容'); return; }
+
+  const btn = document.querySelector('.quick-parse-btn');
+  btn.textContent = '整理中...'; btn.disabled = true;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: '你是一个工作总结整理助手。用户会输入碎碎念的工作内容，你需要提取并归类。只返回JSON，格式：{"workItems":[{"task":"工作内容","result":"结果或空字符串"}],"suggestions":{"type":"推测的总结类型: weekly/monthly/quarterly/annual/probation/promotion/project/handover","role":"推测的岗位，不确定则空字符串"}}。不要输出任何其他内容。',
+        messages: [{ role: 'user', content: text }]
+      })
+    });
+    const data = await res.json();
+    const raw = data.content.map(i => i.text || '').join('');
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    // Fill work items
+    const container = document.getElementById('workItems');
+    container.innerHTML = '';
+    workIndex = 0;
+    parsed.workItems.forEach((item, i) => {
+      workIndex = i;
+      const div = document.createElement('div');
+      div.className = 'work-item';
+      div.setAttribute('data-index', i);
+      div.innerHTML = `
+        <button class="remove-item-btn" onclick="removeWorkItem(this)">×</button>
+        <input type="text" value="${esc(item.task)}" placeholder="工作内容">
+        <textarea placeholder="结果 / 数据">${esc(item.result)}</textarea>
+        <div class="work-item-hint">💡 可以补充具体数据</div>
+      `;
+      container.appendChild(div);
+    });
+    workIndex++;
+
+    // Fill suggestions
+    if (parsed.suggestions?.type) document.getElementById('summaryType').value = parsed.suggestions.type;
+    if (parsed.suggestions?.role) document.getElementById('role').value = parsed.suggestions.role;
+    onTypeChange();
+
+    // 🌟 新增：视觉牵引与动画反馈
+    const formSection = document.getElementById('summaryType').closest('.form-row-2col');
+    formSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // 给表单区域加呼吸灯特效
+    document.querySelectorAll('.form-row, .work-item').forEach(el => {
+      el.classList.add('pulse-active');
+      setTimeout(() => el.classList.remove('pulse-active'), 1500);
+    });
+
+    showToast('整理完成！请检查并补充数据');
+    document.getElementById('quickInput').value = '';
+  } catch(e) {
+    showToast('整理失败，请手动填写');
+  } finally {
+    btn.textContent = '✦ 帮我整理 → 填入表单'; btn.disabled = false;
+  }
+}
+
+// ── Generate ──
+async function generate(overrideStyle) {
+  const type = document.getElementById('summaryType').value;
+  const audience = document.getElementById('audience').value;
+  const role = document.getElementById('role').value.trim();
+  const style = overrideStyle || document.querySelector('#styleGroup .pill.selected')?.dataset.val;
+
+  if (!type) { showToast('请选择总结类型'); return; }
+  if (!audience) { showToast('请选择给谁看'); return; }
+  if (!style) { showToast('请选择输出风格'); return; }
+
+  // Collect work items
+  const workItems = [];
+  document.querySelectorAll('.work-item').forEach(item => {
+    const task = item.querySelector('input').value.trim();
+    const result = item.querySelector('textarea').value.trim();
+    if (task) workItems.push({ task, result });
+  });
+  if (workItems.length === 0) { showToast('请至少填写一条工作项'); return; }
+
+  const highlights = document.getElementById('highlights').value.trim();
+  const problems = document.getElementById('problems').value.trim();
+  const weakness = document.getElementById('weakness').value.trim();
+  const plan = document.getElementById('plan').value.trim();
+  const timeRange = document.getElementById('timeRange').value.trim();
+
+  const params = { type, audience, role, style, workItems, highlights, problems, weakness, plan, timeRange };
+  lastParams = params;
+
+  // UI
+  const btn = document.getElementById('generateBtn');
+  btn.textContent = '生成中...'; btn.disabled = true;
+
+  const outputZone = document.getElementById('outputZone');
+  outputZone.className = 'output-zone show';
+  
+  // 确保生成新内容时关闭编辑模式
+  if (isEditing) {
+    isEditing = false;
+    document.getElementById('resultText').classList.remove('editing');
+    const editBtn = document.getElementById('editToggleBtn');
+    editBtn.textContent = '✏️ 自由编辑';
+    editBtn.classList.remove('primary');
+  }
+
+  document.getElementById('resultText').innerHTML = `
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div class="loading-text">AI 正在生成，请稍候...</div>
+    </div>`;
+  outputZone.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const TYPE_NAMES = { weekly:'周报', monthly:'月报', quarterly:'季报', annual:'年终总结', probation:'转正总结', promotion:'述职报告', project:'项目复盘', handover:'离职交接' };
+  const AUD_NAMES = { leader:'直属领导', cross:'跨部门', self:'自我存档', promotion:'晋升评委' };
+  const STYLE_NAMES = { practical:'朴实务实', data:'数据导向', highlight:'突出亮点', formal:'体制内正式' };
+  const LENGTH_MAP = { weekly:'200-300字', monthly:'400-600字', quarterly:'500-800字', annual:'800-1200字', probation:'500-700字', promotion:'800-1200字', project:'600-900字', handover:'400-600字' };
+
+  document.getElementById('outputTitle').textContent = `${TYPE_NAMES[type]} · ${AUD_NAMES[audience]}`;
+
+  const sysPrompt = `你是一个专业的职场写作助手，专门帮人写工作总结。
+
+核心规则（必须严格遵守）：
+1. 【绝对真实】：用户没有提供的具体数字，你绝对不能自己编造。若某处本应有数据但用户未提供，必须使用占位符格式：【请填入：X处的数据/数字/比例】。这些占位符用方括号包裹，帮用户记住需要补充真实数据的位置。
+2. 【篇幅控制】：本次类型为${TYPE_NAMES[type]}，严格控制在${LENGTH_MAP[type]}以内。
+3. 【去官腔】：${style === 'formal' ? '用户选择了体制内风格，适当使用专业术语，但避免假大空。' : '禁止出现"在领导英明指导下"、"思想认识不足"等空话套话，语言务实具体。'}
+4. 【受众适配】：${AUD_NAMES[audience] === '晋升评委' ? '重点展示个人成长曲线和对更高职级的能力匹配度。' : AUD_NAMES[audience] === '跨部门' ? '减少内部术语，突出跨团队协作价值和整体贡献。' : AUD_NAMES[audience] === '自我存档' ? '可以更真实，记录实际状态，不必过度包装。' : '突出对直属领导最关心的：完成度、产出价值、问题解决能力。'}
+5. 风格要求：${STYLE_NAMES[style]}
+6. 直接输出正文，不要加"以下是"之类的前缀。`;
+
+  const userContent = `请帮我写一份${TYPE_NAMES[type]}。
+
+${role ? `岗位：${role}` : ''}
+${timeRange ? `时间范围：${timeRange}` : ''}
+
+核心工作项：
+${workItems.map((w, i) => `${i+1}. ${w.task}${w.result ? '\n   结果：' + w.result : '\n   （用户未提供数据，请在对应位置留占位符）'}`).join('\n')}
+${highlights ? '\n亮点成果：' + highlights : ''}
+${problems ? '\n问题与解决：' + problems : ''}
+${weakness ? '\n不足与改进：' + weakness : ''}
+${plan ? '\n下阶段规划：' + plan : ''}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: sysPrompt,
+        messages: [{ role: 'user', content: userContent }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content.map(i => i.text || '').join('');
+    currentResult = text;
+    renderResult(text);
+
+    // Save to history
+    const entry = {
+      id: Date.now(),
+      type: TYPE_NAMES[type],
+      audience: AUD_NAMES[audience],
+      preview: text.slice(0, 60),
+      full: text,
+      time: new Date().toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' })
+    };
+    history.unshift(entry);
+    if (history.length > 10) history = history.slice(0, 10);
+    localStorage.setItem('ws_history', JSON.stringify(history));
+    renderHistory();
+
+    // Count
+    const cnt = parseInt(localStorage.getItem('ws_gen_count') || '0') + 1;
+    localStorage.setItem('ws_gen_count', cnt);
+    document.getElementById('statGen').textContent = cnt;
+
+  } catch(e) {
+    document.getElementById('resultText').textContent = '生成失败，请检查网络后重试。';
+  } finally {
+    btn.textContent = '✦ 生成工作总结'; btn.disabled = false;
+  }
+}
+
+function renderResult(text) {
+  // Convert【请填入：...】to clickable placeholders
+  const el = document.getElementById('resultText');
+  const parts = text.split(/(【[^】]+】)/g);
+  el.innerHTML = '';
+  parts.forEach(part => {
+    if (/^【.+】$/.test(part)) {
+      const span = document.createElement('span');
+      span.className = 'placeholder-tag';
+      span.textContent = part;
+      span.title = '点击填入真实数据';
+      span.onclick = (e) => openPhPopup(e, span);
+      el.appendChild(span);
+    } else {
+      el.appendChild(document.createTextNode(part));
+    }
+  });
+}
+
+// ── Placeholder popup ──
+function openPhPopup(e, el) {
+  currentPlaceholderEl = el;
+  const popup = document.getElementById('phPopup');
+  const hint = el.textContent.replace(/^【|】$/g, '');
+  document.getElementById('phHint').textContent = hint;
+  document.getElementById('phInput').value = '';
+  popup.classList.add('show');
+  const rect = el.getBoundingClientRect();
+  popup.style.top = (rect.bottom + window.scrollY + 6) + 'px';
+  popup.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 240) + 'px';
+  setTimeout(() => document.getElementById('phInput').focus(), 50);
+  e.stopPropagation();
+}
+function closePhPopup() {
+  document.getElementById('phPopup').classList.remove('show');
+  currentPlaceholderEl = null;
+}
+function confirmPlaceholder() {
+  const val = document.getElementById('phInput').value.trim();
+  if (!val) { showToast('请输入内容'); return; }
+  if (currentPlaceholderEl) {
+    currentPlaceholderEl.outerHTML = val;
+    // Update currentResult
+    currentResult = document.getElementById('resultText').textContent;
+  }
+  closePhPopup();
+}
+document.addEventListener('click', (e) => {
+  const popup = document.getElementById('phPopup');
+  if (!popup.contains(e.target)) closePhPopup();
+});
+
+// ── Adjust length ──
+async function adjustLength(dir) {
+  if (!currentResult) return;
+  const btn = dir === 'shorter' ? document.querySelectorAll('.action-btn')[0] : document.querySelectorAll('.action-btn')[1];
+  btn.textContent = '处理中...'; btn.disabled = true;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: '你是职场写作助手。请按要求调整篇幅，保持内容完整性，不要编造数据，保留【请填入：...】占位符。只输出调整后的正文。',
+        messages: [{ role: 'user', content: `请将以下工作总结${dir === 'shorter' ? '精简30%，删除冗余表达' : '扩展30%，补充更多细节和背景'}：\n\n${currentResult}` }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content.map(i => i.text || '').join('');
+    currentResult = text;
+    renderResult(text);
+  } catch(e) { showToast('调整失败，请重试'); }
+  finally { btn.textContent = dir === 'shorter' ? '更精简' : '更详细'; btn.disabled = false; }
+}
+
+// ── Regen with style ──
+async function regenWithStyle(style) {
+  if (!lastParams) return;
+  lastParams.style = style;
+  // Select pill
+  document.querySelectorAll('#styleGroup .pill').forEach(p => {
+    p.classList.toggle('selected', p.dataset.val === style);
+  });
+  await generate(style);
+}
+
+// ── Edit Toggle ──
+function toggleEditMode() {
+  const el = document.getElementById('resultText');
+  const btn = document.getElementById('editToggleBtn');
+  
+  if (!isEditing) {
+    // 切换为纯文本编辑模式 (剥离高亮 HTML)
+    const rawText = el.innerText || el.textContent;
+    el.innerHTML = `<textarea class="result-textarea" id="rawResultEdit">${rawText}</textarea>`;
+    el.classList.add('editing');
+    btn.textContent = '💾 保存修改';
+    btn.classList.add('primary');
+  } else {
+    // 切换回阅读模式 (重新渲染高亮)
+    const newText = document.getElementById('rawResultEdit').value;
+    currentResult = newText;
+    el.classList.remove('editing');
+    renderResult(newText);
+    btn.textContent = '✏️ 自由编辑';
+    btn.classList.remove('primary');
+  }
+  isEditing = !isEditing;
+}
+
+// ── Copy ──
+function copyResult() {
+  let textToCopy = '';
+  if (isEditing) {
+    textToCopy = document.getElementById('rawResultEdit').value;
+  } else {
+    textToCopy = document.getElementById('resultText').innerText || document.getElementById('resultText').textContent;
+  }
+  
+  if (!textToCopy) return;
+  navigator.clipboard.writeText(textToCopy).then(() => showToast('已复制到剪贴板'));
+}
+
+// ── History ──
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (history.length === 0) {
+    list.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+    return;
+  }
+  list.innerHTML = history.map((h, i) => `
+    <div class="history-item" onclick="loadHistory(${i})">
+      <div class="history-item-info">
+        <div class="history-item-type">${h.type} · ${h.audience}</div>
+        <div class="history-item-preview">${esc(h.preview)}...</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="history-item-time">${h.time}</div>
+        <button class="history-del-btn" onclick="delHistory(event,${h.id})">×</button>
+      </div>
+    </div>
+  `).join('');
+}
+function loadHistory(i) {
+  const h = history[i];
+  currentResult = h.full;
+  
+  if (isEditing) {
+    isEditing = false;
+    document.getElementById('resultText').classList.remove('editing');
+    const editBtn = document.getElementById('editToggleBtn');
+    editBtn.textContent = '✏️ 自由编辑';
+    editBtn.classList.remove('primary');
+  }
+
+  document.getElementById('outputZone').className = 'output-zone show';
+  document.getElementById('outputTitle').textContent = `${h.type} · ${h.audience}`;
+  renderResult(h.full);
+  document.getElementById('outputZone').scrollIntoView({ behavior: 'smooth' });
+}
+function delHistory(e, id) {
+  e.stopPropagation();
+  history = history.filter(h => h.id !== id);
+  localStorage.setItem('ws_history', JSON.stringify(history));
+  renderHistory();
+}
+
+// ── Toast ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── Escape ──
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Enter key in placeholder popup ──
+document.getElementById('phInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmPlaceholder();
+  if (e.key === 'Escape') closePhPopup();
+});
+
+init();
+</script>
+</body>
+</html>
