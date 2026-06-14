@@ -682,6 +682,23 @@
     <div class="ai-zone-title">✦ 智能生成</div>
     <div class="ai-zone-desc">填写越具体，生成越精准。没有数据？AI 会留下占位符，你来填真实数字。</div>
 
+    <div class="form-row" style="margin-bottom:20px;">
+      <div class="form-label" style="font-size:13px;font-weight:600;color:var(--brown);margin-bottom:7px;">
+        🔑 API Key
+        <a href="https://jotarou.com" target="_blank" style="font-size:11px;color:var(--accent);margin-left:8px;text-decoration:none;font-weight:500;">获取 Key →</a>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <input type="password" id="wsApiKey" placeholder="填入 jotarou.com 生成的 sk-... key"
+          style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 13px;font-size:14px;color:var(--text);font-family:inherit;outline:none;"
+          oninput="localStorage.setItem('ws_api_key',this.value)">
+        <button onclick="toggleWsKey()" id="wsKeyToggleBtn"
+          style="padding:0 14px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-muted);cursor:pointer;font-family:inherit;white-space:nowrap;">
+          显示
+        </button>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">Key 仅保存在本地浏览器，不会上传至任何服务器</div>
+    </div>
+
     <div class="quick-input-wrap">
       <div class="quick-input-label">⚡ 碎碎念速记</div>
       <div class="quick-input-hint">直接把这周干了什么随手写下来，AI 帮你整理归类到下方表单。</div>
@@ -894,6 +911,13 @@ let lastParams = null;
 let isEditing = false;
 
 // ── Init ──
+function toggleWsKey() {
+  const input = document.getElementById('wsApiKey');
+  const btn = document.getElementById('wsKeyToggleBtn');
+  if (input.type === 'password') { input.type = 'text'; btn.textContent = '隐藏'; }
+  else { input.type = 'password'; btn.textContent = '显示'; }
+}
+
 function init() {
   // Theme
   const saved = localStorage.getItem('theme');
@@ -913,6 +937,10 @@ function init() {
   // Stats: gen count
   const count = parseInt(localStorage.getItem('ws_gen_count') || '0');
   document.getElementById('statGen').textContent = count;
+
+  // Restore API key
+  const savedKey = localStorage.getItem('ws_api_key');
+  if (savedKey) document.getElementById('wsApiKey').value = savedKey;
 
   renderHistory();
 }
@@ -999,18 +1027,21 @@ async function parseQuickInput() {
   btn.textContent = '整理中...'; btn.disabled = true;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const apiKey = localStorage.getItem('ws_api_key') || '';
+    const res = await fetch('https://jotarou.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
-        system: '你是一个工作总结整理助手。用户会输入碎碎念的工作内容，你需要提取并归类。只返回JSON，格式：{"workItems":[{"task":"工作内容","result":"结果或空字符串"}],"suggestions":{"type":"推测的总结类型: weekly/monthly/quarterly/annual/probation/promotion/project/handover","role":"推测的岗位，不确定则空字符串"}}。不要输出任何其他内容。',
-        messages: [{ role: 'user', content: text }]
+        messages: [
+          { role: 'system', content: '你是一个工作总结整理助手。用户会输入碎碎念的工作内容，你需要提取并归类。只返回JSON，格式：{"workItems":[{"task":"工作内容","result":"结果或空字符串"}],"suggestions":{"type":"推测的总结类型: weekly/monthly/quarterly/annual/probation/promotion/project/handover","role":"推测的岗位，不确定则空字符串"}}。不要输出任何其他内容。' },
+          { role: 'user', content: text }
+        ]
       })
     });
     const data = await res.json();
-    const raw = data.content.map(i => i.text || '').join('');
+    const raw = data.choices[0].message.content || '';
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
 
@@ -1139,18 +1170,21 @@ ${weakness ? '\n不足与改进：' + weakness : ''}
 ${plan ? '\n下阶段规划：' + plan : ''}`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const apiKey = localStorage.getItem('ws_api_key') || '';
+    const res = await fetch('https://jotarou.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
-        system: sysPrompt,
-        messages: [{ role: 'user', content: userContent }]
+        messages: [
+          { role: 'system', content: sysPrompt },
+          { role: 'user', content: userContent }
+        ]
       })
     });
     const data = await res.json();
-    const text = data.content.map(i => i.text || '').join('');
+    const text = data.choices[0].message.content || '';
     currentResult = text;
     renderResult(text);
 
@@ -1238,18 +1272,21 @@ async function adjustLength(dir) {
   const btn = dir === 'shorter' ? document.querySelectorAll('.action-btn')[0] : document.querySelectorAll('.action-btn')[1];
   btn.textContent = '处理中...'; btn.disabled = true;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const apiKey = localStorage.getItem('ws_api_key') || '';
+    const res = await fetch('https://jotarou.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
-        system: '你是职场写作助手。请按要求调整篇幅，保持内容完整性，不要编造数据，保留【请填入：...】占位符。只输出调整后的正文。',
-        messages: [{ role: 'user', content: `请将以下工作总结${dir === 'shorter' ? '精简30%，删除冗余表达' : '扩展30%，补充更多细节和背景'}：\n\n${currentResult}` }]
+        messages: [
+          { role: 'system', content: '你是职场写作助手。请按要求调整篇幅，保持内容完整性，不要编造数据，保留【请填入：...】占位符。只输出调整后的正文。' },
+          { role: 'user', content: `请将以下工作总结${dir === 'shorter' ? '精简30%，删除冗余表达' : '扩展30%，补充更多细节和背景'}：\n\n${currentResult}` }
+        ]
       })
     });
     const data = await res.json();
-    const text = data.content.map(i => i.text || '').join('');
+    const text = data.choices[0].message.content || '';
     currentResult = text;
     renderResult(text);
   } catch(e) { showToast('调整失败，请重试'); }
